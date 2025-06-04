@@ -189,6 +189,19 @@ def produce_cash_flows_general(entry: data.Directive,
             posting.meta["flow"] = cf
             flows.append(cf)
 
+        elif category == Cat.ASSET and has_dividend:
+            # This handles a reinvested dividend. This transaction can
+            # be split into two cash flows: one for the dividend itself, 
+            # and one for the reinvestment            # 
+            cf = CashFlow(entry.date, convert.get_weight(posting), has_dividend,
+                          "dividend", account, entry)
+            posting.meta["flow"] = cf
+            flows.append(cf)
+            cf = CashFlow(entry.date, -convert.get_weight(posting), False,
+                          "reinvest", account, entry)
+            posting.meta["flow"] = cf
+            flows.append(cf)
+
     return flows
 
 
@@ -216,11 +229,31 @@ def handle_no_flows(*args) -> List[CashFlow]:
           "Asset dividend reinvested")
 @register([Cat.ASSET, Cat.DIVIDEND, Cat.EXPENSES],
           "Asset dividend reinvested")
-def handle_dividend_reinvestments(*args) -> List[CashFlow]:
+def handle_dividend_reinvestments(entry: data.Directive, account: Account) -> List[CashFlow]:
     """Reinvested stock dividends remains internal, the money is just moved to more
     of the asset. Note that because of this, it would make it difficult to
     remove the dividend from the performance of this asset."""
-    return []
+    return _handle_reinvested_dividend(entry, account)
+
+
+def _handle_reinvested_dividend(entry: data.Directive, account: Account,
+                 ) -> List[CashFlow]:
+    "Handle a reinvested dividend as if two separate transactions."
+    flows = []
+    for posting in entry.postings:
+        if posting.meta["category"] == Cat.ASSET:
+            # This handles a reinvested dividend. This transaction can
+            # be split into two cash flows: one for the dividend itself, 
+            # and one for the reinvestment
+            cf = CashFlow(entry.date, convert.get_weight(posting), True,
+                          "dividend", account, entry)
+            posting.meta["flow"] = cf
+            flows.append(cf)
+            cf = CashFlow(entry.date, -convert.get_weight(posting), False,
+                          "reinvest", account, entry)
+            posting.meta["flow"] = cf
+            flows.append(cf)
+    return flows
 
 
 @register([Cat.ASSET, Cat.EXPENSES],
