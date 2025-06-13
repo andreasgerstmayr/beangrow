@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = "beangrow"
-version = '1.0.1'
+version = '1.1.0'
 description = 'Returns calculations on portfolios in Beancount Resources'
 authors = [
     { name = 'Martin Blais', email = 'blais@furius.ca' },
